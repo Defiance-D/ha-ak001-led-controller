@@ -2,6 +2,7 @@
 """TCP communication with the AK001 LED controller."""
 
 import asyncio
+import colorsys
 import logging
 
 from .const import (
@@ -28,6 +29,87 @@ class AK001Protocol:
         self.host = host
         self.port = port
         self.timeout = timeout
+        self._counter = 0
+
+
+    def build_rgb_command(
+        self,
+        red: int,
+        green: int,
+        blue: int,
+    ) -> bytes:
+        """Build a confirmed AK001 RGB command."""
+        if not all(
+            isinstance(value, int) and 0 <= value <= 255
+            for value in (red, green, blue)
+        ):
+            raise ValueError("RGB values must be integers from 0 to 255")
+
+        hue, saturation, value = colorsys.rgb_to_hsv(
+            red / 255,
+            green / 255,
+            blue / 255,
+        )
+
+        # AK001 uses hue in half-degrees and saturation/value in percent.
+        h = int(hue * 180)
+        s = int(saturation * 100)
+        v = int(value * 100)
+
+        # Confirmed inner command for RGB color changes.
+        inner = bytes(
+            [
+                0xE0,
+                0x01,
+                0x00,
+                0xA1,
+                h,
+                s,
+                v,
+                0x00,
+                0x00,
+                0x00,
+                0x00,
+                0x14,
+                0x00,
+                0x00,
+            ]
+        )
+
+        counter = self._counter
+        self._counter = (self._counter + 1) & 0xFF
+
+        # AK001 outer wrapper.
+        packet = bytes(
+            [
+                0xB0,
+                0xB1,
+                0xB2,
+                0xB3,
+                0x00,
+                0x01,
+                0x02,
+                counter,
+                (len(inner) >> 8) & 0xFF,
+                len(inner) & 0xFF,
+            ]
+        ) + inner
+
+        # Checksum: sum of all preceding bytes modulo 256.
+        checksum = sum(packet) & 0xFF
+
+        return packet + bytes([checksum])
+
+    async def async_set_rgb(
+        self,
+        red: int,
+        green: int,
+        blue: int,
+    ) -> bytes:
+        """Set the RGB color."""
+        command = self.build_rgb_command(red, green, blue)
+        return await self.async_send_command(command)
+
 
     async def async_send_command(
         self,

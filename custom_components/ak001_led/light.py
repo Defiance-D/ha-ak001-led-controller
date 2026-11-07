@@ -3,10 +3,7 @@
 
 import logging
 
-from homeassistant.components.light import (
-    ColorMode,
-    LightEntity,
-)
+from homeassistant.components.light import ColorMode, LightEntity
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import HomeAssistantError
@@ -36,8 +33,9 @@ class AK001Light(LightEntity):
 
     _attr_has_entity_name = True
     _attr_name = "LED"
-    _attr_supported_color_modes = {ColorMode.ONOFF}
-    _attr_color_mode = ColorMode.ONOFF
+
+    _attr_supported_color_modes = {ColorMode.RGB}
+    _attr_color_mode = ColorMode.RGB
 
     def __init__(
         self,
@@ -49,27 +47,59 @@ class AK001Light(LightEntity):
         self._attr_unique_id = f"{entry_id}_light"
         self._attr_is_on = False
         self._attr_available = True
+        self._attr_rgb_color = None
 
     async def async_turn_on(self, **kwargs) -> None:
-        """Turn the light on."""
+        """Turn the light on and optionally set its RGB color."""
         try:
-            await self._protocol.async_turn_on()
+            # Turn the controller on if it is currently off.
+            if not self._attr_is_on:
+                await self._protocol.async_turn_on()
+
+            rgb_color = kwargs.get("rgb_color")
+
+            if rgb_color is not None:
+                red, green, blue = rgb_color
+
+                await self._protocol.async_set_rgb(
+                    red,
+                    green,
+                    blue,
+                )
+
+                self._attr_rgb_color = (
+                    red,
+                    green,
+                    blue,
+                )
+
+            self._attr_is_on = True
+            self._attr_available = True
+
             await self.async_update()
-        except (OSError, TimeoutError) as err:
+
+        except (OSError, TimeoutError, ConnectionError, ValueError) as err:
             self._attr_available = False
             self.async_write_ha_state()
+
             raise HomeAssistantError(
-                f"Unable to turn on AK001: {err}"
+                f"Unable to control AK001: {err}"
             ) from err
 
     async def async_turn_off(self, **kwargs) -> None:
         """Turn the light off."""
         try:
             await self._protocol.async_turn_off()
+
+            self._attr_is_on = False
+            self._attr_available = True
+
             await self.async_update()
-        except (OSError, TimeoutError) as err:
+
+        except (OSError, TimeoutError, ConnectionError, ValueError) as err:
             self._attr_available = False
             self.async_write_ha_state()
+
             raise HomeAssistantError(
                 f"Unable to turn off AK001: {err}"
             ) from err
@@ -81,7 +111,10 @@ class AK001Light(LightEntity):
             parsed = self._protocol.parse_status(status)
 
         except (OSError, TimeoutError, ConnectionError, ValueError) as err:
-            _LOGGER.warning("Unable to read AK001 status: %s", err)
+            _LOGGER.warning(
+                "Unable to read AK001 status: %s",
+                err,
+            )
             self._attr_available = False
             return
 
