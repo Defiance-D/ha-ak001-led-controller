@@ -1,93 +1,132 @@
-# HA AK001 LED Controller
+# AK001 LED Controller для Home Assistant
 
+Кастомная интеграция для локального управления LED-контроллером
+**AK001-ZJ21413** из Home Assistant.
 
+Интеграция обменивается командами с контроллером по локальной сети и не
+требует Bluetooth или облачного сервиса для обычного управления светом.
 
-## Getting started
+## Возможности
 
-To make it easy for you to get started with GitLab, here's a list of recommended next steps.
+-   Включение и выключение LED-контроллера.
+-   Установка цвета в режиме RGB.
+-   Регулировка яркости.
+-   Локальное TCP-соединение с контроллером.
 
-Already a pro? Just edit this README.md and make it your own. Want to make it easy? [Use the template at the bottom](#editing-this-readme)!
+## Поддерживаемое устройство
 
-## Add your files
+На данный момент разработка и проверка выполнялись со следующим
+устройством:
 
-* [Create](https://docs.gitlab.com/user/project/repository/web_editor/#create-a-file) or [upload](https://docs.gitlab.com/user/project/repository/web_editor/#upload-a-file) files
-* [Add files using the command line](https://docs.gitlab.com/topics/git/add_files/#add-files-to-a-git-repository) or push an existing Git repository with the following command:
+  Параметр               Значение
+  ---------------------- -----------------
+  Модель                 `AK001-ZJ21413`
+  Проверенная прошивка   `v9.27.8972-A`
+  Локальный TCP-порт     `5577`
 
+Работа с другими моделями и версиями прошивки не гарантируется.
+
+## Установка
+
+1.  Установите интеграцию **AK001 LED Controller** через Marketplace
+    Home Assistant, если она доступна в каталоге вашей установки.
+2.  Перейдите в **Настройки → Устройства и службы**.
+3.  Нажмите **Добавить интеграцию**.
+4.  Найдите `AK001 LED Controller`.
+5.  Укажите IP-адрес контроллера и TCP-порт `5577` (если поле порта
+    доступно; это порт по умолчанию).
+6.  Завершите настройку.
+
+Если интеграция уже установлена, обновите её через Marketplace и
+перезапустите Home Assistant, если он запросит перезапуск.
+
+> Контроллер и Home Assistant должны иметь сетевую доступность друг для
+> друга. Рекомендуется закрепить за контроллером постоянный IP-адрес в
+> настройках DHCP роутера.
+
+## Использование
+
+После настройки интеграция добавляет в Home Assistant сущность света. Её
+можно использовать в стандартных карточках Lovelace, автоматизациях и
+сценариях.
+
+Поддерживаются стандартные действия Home Assistant:
+
+-   `light.turn_on` --- включение света, установка RGB-цвета и яркости;
+-   `light.turn_off` --- выключение света.
+
+Пример вызова действия `light.turn_on`:
+
+``` yaml
+action: light.turn_on
+target:
+  entity_id: light.led
+data:
+  rgb_color: [128, 0, 255]
+  brightness: 180
 ```
-cd existing_repo
-git remote add origin https://gitlab.com/DefianceCode/ha-ak001-led-controller.git
-git branch -M main
-git push -uf origin main
-```
 
-## Integrate with your tools
+Замените `light.led` на фактический `entity_id` вашей сущности.
 
-* [Set up project integrations](https://gitlab.com/DefianceCode/ha-ak001-led-controller/-/settings/integrations)
+Значения RGB задаются в диапазоне `0–255`. Яркость Home Assistant
+задаётся в диапазоне `0–255`.
 
-## Collaborate with your team
+## Сеть и конфиденциальность
 
-* [Invite team members and collaborators](https://docs.gitlab.com/user/project/members/)
-* [Create a new merge request](https://docs.gitlab.com/user/project/merge_requests/creating_merge_requests/)
-* [Automatically close issues from merge requests](https://docs.gitlab.com/user/project/issues/managing_issues/#closing-issues-automatically)
-* [Enable merge request approvals](https://docs.gitlab.com/user/project/merge_requests/approvals/)
-* [Set auto-merge](https://docs.gitlab.com/user/project/merge_requests/auto_merge/)
+Интеграция управляет контроллером по локальной сети через TCP. Для
+работы Home Assistant должен иметь возможность подключаться к IP-адресу
+контроллера на TCP-порт `5577`.
 
-## Test and Deploy
+Не открывайте порт контроллера в Интернет. Для удалённого доступа
+используйте безопасный способ подключения к своей сети и Home Assistant.
 
-Use the built-in continuous integration in GitLab.
+## Устранение неполадок
 
-* [Get started with GitLab CI/CD](https://docs.gitlab.com/ci/quick_start/)
-* [Analyze your code for known vulnerabilities with Static Application Security Testing (SAST)](https://docs.gitlab.com/user/application_security/sast/)
-* [Deploy to Kubernetes, Amazon EC2, or Amazon ECS using Auto Deploy](https://docs.gitlab.com/topics/autodevops/requirements/)
-* [Use pull-based deployments for improved Kubernetes management](https://docs.gitlab.com/user/clusters/agent/)
-* [Set up protected environments](https://docs.gitlab.com/ci/environments/protected_environments/)
+### Интеграция не подключается к контроллеру
 
-***
+-   Проверьте IP-адрес контроллера.
+-   Убедитесь, что контроллер и Home Assistant находятся в сетях, между
+    которыми разрешено соединение.
+-   Проверьте доступность TCP-порта `5577`.
+-   Убедитесь, что роутер или межсетевой экран не блокирует соединение.
 
-# Editing this README
+### Свет не меняет цвет или яркость
 
-When you're ready to make this README your own, just edit this file and use the handy template below (or feel free to structure it however you want - this is just a starting point!). Thanks to [makeareadme.com](https://www.makeareadme.com/) for this template.
+-   Проверьте, что контроллер доступен по сети.
+-   Убедитесь, что выбрана правильная сущность света.
+-   Проверьте цвет и яркость через стандартное действие `light.turn_on`
+    в инструментах разработчика Home Assistant.
+-   Посмотрите журнал Home Assistant на наличие ошибок интеграции.
 
-## Suggestions for a good README
+### После обновления интеграции изменения не появились
 
-Every project is different, so consider which of these sections apply to yours. The sections used in the template are suggestions for most open source projects. Also keep in mind that while a README can be too long and detailed, too long is better than too short. If you think your README is too long, consider utilizing another form of documentation rather than cutting out information.
+Убедитесь, что Marketplace установил актуальную версию. При
+необходимости перезапустите Home Assistant.
 
-## Name
-Choose a self-explaining name for your project.
+## Версии
 
-## Description
-Let people know what your project can do specifically. Provide context and add a link to any reference visitors might be unfamiliar with. A list of Features or a Background subsection can also be added here. If there are alternatives to your project, this is a good place to list differentiating factors.
+### 0.3.0
 
-## Badges
-On some READMEs, you may see small images that convey metadata, such as whether or not all the tests are passing for the project. You can use Shields to add some to your README. Many services also have instructions for adding a badge.
+-   Добавлена поддержка регулировки яркости из Home Assistant.
+-   Сохранена поддержка управления RGB-цветом.
+-   Проверена работа регулировки яркости на контроллере AK001-ZJ21413.
 
-## Visuals
-Depending on what you are making, it can be a good idea to include screenshots or even a video (you'll frequently see GIFs rather than actual videos). Tools like ttygif can help, but check out Asciinema for a more sophisticated method.
+### 0.2.0
 
-## Installation
-Within a particular ecosystem, there may be a common way of installing things, such as using Yarn, NuGet, or Homebrew. However, consider the possibility that whoever is reading your README is a novice and would like more guidance. Listing specific steps helps remove ambiguity and gets people to using your project as quickly as possible. If it only runs in a specific context like a particular programming language version or operating system or has dependencies that have to be installed manually, also add a Requirements subsection.
+-   Добавлена поддержка установки RGB-цвета.
 
-## Usage
-Use examples liberally, and show the expected output if you can. It's helpful to have inline the smallest example of usage that you can demonstrate, while providing links to more sophisticated examples if they are too long to reasonably include in the README.
+## Разработка и сообщения об ошибках
 
-## Support
-Tell people where they can go to for help. It can be any combination of an issue tracker, a chat room, an email address, etc.
+Исходный код и история изменений:
 
-## Roadmap
-If you have ideas for releases in the future, it is a good idea to list them in the README.
+-   [GitHub](https://github.com/Defiance-D/ha-ak001-led-controller)
+-   [GitLab](https://gitlab.com/DefianceCode/ha-ak001-led-controller)
 
-## Contributing
-State if you are open to contributions and what your requirements are for accepting them.
+При создании сообщения об ошибке укажите модель контроллера, версию
+прошивки, версию Home Assistant, версию интеграции и соответствующие
+записи журнала (предварительно удалив личные данные и публичные
+IP-адреса).
 
-For people who want to make changes to your project, it's helpful to have some documentation on how to get started. Perhaps there is a script that they should run or some environment variables that they need to set. Make these steps explicit. These instructions could also be useful to your future self.
+## Лицензия
 
-You can also document commands to lint the code or run tests. These steps help to ensure high code quality and reduce the likelihood that the changes inadvertently break something. Having instructions for running tests is especially helpful if it requires external setup, such as starting a Selenium server for testing in a browser.
-
-## Authors and acknowledgment
-Show your appreciation to those who have contributed to the project.
-
-## License
-For open source projects, say how it is licensed.
-
-## Project status
-If you have run out of energy or time for your project, put a note at the top of the README saying that development has slowed down or stopped completely. Someone may choose to fork your project or volunteer to step in as a maintainer or owner, allowing your project to keep going. You can also make an explicit request for maintainers.
+См. файл [LICENSE](LICENSE) в репозитории.
