@@ -1,0 +1,19 @@
+
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "AK001 LED Controller",
+        "description": "Enter the network address of your AK001 controller.",
+        "data": {
+          "host": "IP address",
+          "port": "TCP port"
+        }
+      }
+    },
+    "error": {
+      "cannot_connect": "Cannot connect to the controller. Check the IP address and port.",
+      "invalid_response": "The device responded, but the response was not recognized as an AK001 controller."
+    }
+  }
+}
