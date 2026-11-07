@@ -23,9 +23,7 @@ async def async_setup_entry(
     """Set up the AK001 light."""
     protocol: AK001Protocol = hass.data[DOMAIN][entry.entry_id]
 
-    async_add_entities(
-        [AK001Light(protocol, entry.entry_id)]
-    )
+    async_add_entities([AK001Light(protocol, entry.entry_id)])
 
 
 class AK001Light(LightEntity):
@@ -47,30 +45,32 @@ class AK001Light(LightEntity):
         self._attr_unique_id = f"{entry_id}_light"
         self._attr_is_on = False
         self._attr_available = True
-        self._attr_rgb_color = None
+        self._attr_rgb_color = (255, 255, 255)
+        self._attr_brightness = 255
 
     async def async_turn_on(self, **kwargs) -> None:
-        """Turn the light on and optionally set its RGB color."""
+        """Turn the light on and set color or brightness."""
         try:
-            # Turn the controller on if it is currently off.
             if not self._attr_is_on:
                 await self._protocol.async_turn_on()
 
             rgb_color = kwargs.get("rgb_color")
+            brightness = kwargs.get("brightness")
 
             if rgb_color is not None:
-                red, green, blue = rgb_color
+                self._attr_rgb_color = tuple(rgb_color)
+
+            if brightness is not None:
+                self._attr_brightness = brightness
+
+            if rgb_color is not None or brightness is not None:
+                red, green, blue = self._attr_rgb_color
 
                 await self._protocol.async_set_rgb(
                     red,
                     green,
                     blue,
-                )
-
-                self._attr_rgb_color = (
-                    red,
-                    green,
-                    blue,
+                    self._attr_brightness,
                 )
 
             self._attr_is_on = True
@@ -111,10 +111,7 @@ class AK001Light(LightEntity):
             parsed = self._protocol.parse_status(status)
 
         except (OSError, TimeoutError, ConnectionError, ValueError) as err:
-            _LOGGER.warning(
-                "Unable to read AK001 status: %s",
-                err,
-            )
+            _LOGGER.warning("Unable to read AK001 status: %s", err)
             self._attr_available = False
             return
 
